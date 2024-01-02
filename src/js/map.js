@@ -1,9 +1,9 @@
 //User interaction
 const userName = localStorage.getItem('username');
-console.log("usuario",userName);
 
 //Server origin
-const socket = io("https://whereappapi-production.up.railway.app/",{
+const serverOrigin = "https://whereappapi-production.up.railway.app/"
+const socket = io(serverOrigin,{
     auth:{
         user:userName}
 });
