@@ -2,8 +2,9 @@
 const userName = localStorage.getItem('username');
 
 //Server origin
-const serverOrigin = "https://whereappapi-production.up.railway.app/"
-const socket = io(serverOrigin,{
+const serverDomain = "https://whereappapi-production.up.railway.app/"
+//const serverDomain = "http://127.0.0.1:3000"
+const socket = io(serverDomain,{
     auth:{
         user:userName}
 });
@@ -12,10 +13,10 @@ const socket = io(serverOrigin,{
 const mapDataBase = {
     mapMarkers: []
 };
-let myLastPos;
 
-//Add or update database in client side.
-const updateDataBase = (userData)=>{
+
+//Add or update database.
+const updateDataBase = (userData) => {
     
     let i;
     let oldUser=false;
@@ -30,39 +31,55 @@ const updateDataBase = (userData)=>{
     if (oldUser){
         mapDataBase.mapMarkers[i].lat=userData.lat;
         mapDataBase.mapMarkers[i].long=userData.long;
-        mapDataBase.mapMarkers[i].marker.setLatLng([userData.lat,userData.long]);
-        console.log("usuario actualizado") ; 
+        mapDataBase.mapMarkers[i].marker.setLatLng([userData.lat,userData.long]); 
 
     }else{
         userData.marker=L.marker([userData.lat,userData.long]).bindPopup(userData.name); 
-
         mapDataBase.mapMarkers.push(userData);
-        console.log("usuario nuevo agregado") ; 
     }
-    console.log(mapDataBase);
-
+    
+    //console.log(mapDataBase);
     drawMarkers();
+};
 
+//Remove user from database & map.
+const remDataBase = (userRem) => {
+    mapDataBase.mapMarkers.map(user=>console.log(user.name));
+    console.log(mapDataBase.mapMarkers);
+    //Findindex to remove
+    const i = mapDataBase.mapMarkers.map(user=>user.name).indexOf(userRem);
+    //Remove marker from map
+    map.removeLayer( mapDataBase.mapMarkers[i].marker);
+    //Remove user from database
+    mapDataBase.mapMarkers.splice(i,1);
+    
+    mapDataBase.mapMarkers.map(user=>console.log(user.name));
+    drawMarkers();
 }
 
 //Socket communication. Receive data from server.
 const socketOn = () => {
-    console.log("Servidor - Socket establecido")
+    socket.on('whereapp:userOn',(user)=>{
+        console.log("USUARIO CONECTADO:",user);
+    });
+    socket.on('whereapp:userOff',(user)=>{
+        console.log("USUARIO DESCONECTADO:",user);
+        remDataBase(user);
+    });
     socket.on('whereapp:serverPos',(newUserData)=>{
         updateDataBase(newUserData);
-        console.log("respuesta servidor");
-        
     });
-}
+};
 
 const socketEmit = (newPos) => {
     socket.emit('whereapp:clientPos',newPos);
-}
+    console.log("Enviada nueva posicion.");
+};
 
 //Map creation
 const mapArea = document.getElementById("map");
 
-let eventId;
+let eventId,myPos;
  
 const map = L.map('map'); 
 
@@ -74,74 +91,92 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 }).addTo(map); 
 
+//Text Box
+const textBox = L.control({ position: "topright" });
+let activeUsers;
+textBox.onAdd = () => {
+    activeUsers = L.DomUtil.create("div","textBox");
+    return activeUsers;
+  };  
+textBox.addTo(map);
+
+const showUsers = () => {
+    const users = [];
+    mapDataBase.mapMarkers.map((user)=>{
+        users.push(user.name);
+    });
+    activeUsers.innerText=users.length.toString();
+}
+
 //Map functions
 
-const getPos = () => {
-    eventId=navigator.geolocation.getCurrentPosition(newPos,errorPos,gpsOptions);
-    //eventId=navigator.geolocation.watchPosition(newPos,errorPos,gpsOptions);
-}
-
 const gpsOptions = {
-    enableHighAccuracy: true,
-    maximumAge:10000,
-    timeout:10000
-}
+    enableHighAccuracy: true
+};
 
 const errorPos = (error) => {
     if (error.code === 1) {
-        alert("Permitir ubicación");
+        prompt("Permitir ubicación.");
+
     } else {
         //alert("¿Dónde estás?");
     }
-}
+};
 
 const newPos = (pos) => {
     //almacenar posicion
-    const myNewPos ={
+    myPos ={
         name:userName,
         lat:pos.coords.latitude,
         long:pos.coords.longitude
     };
-    myLastPos=Object.assign({},myNewPos);
 
     //Socket communication. Send data to server.
-    socketEmit(myNewPos);
-    updateDataBase(myNewPos);
-}
+    socketEmit(myPos);
+    updateDataBase(myPos);
+    //console.log("Recibida nueva posición.");
+};
 
 const drawMarkers = () => {
     const markerGroup = L.featureGroup();
     mapDataBase.mapMarkers.map((user)=>{
         if(!map.hasLayer(user.marker)){
-            map.addLayer(user.marker);
-            console.log("nuevo marker dibujado en mapa");
-            console.log(user.marker._leaflet_id);   
+            map.addLayer(user.marker); 
         }
 
-        //Centering markers to view
+        //Creating markers group
         markerGroup.addLayer(user.marker);
-        const mapBounds= markerGroup.getBounds()
-        map.fitBounds(mapBounds);
-        //map.flyToBounds(mapBounds);
     });
-        
     
-}
+    //Centering markers to view
+    const mapBounds = markerGroup.getBounds();
+    map.fitBounds(mapBounds,{padding:[50,50]});
+
+    //Showing users connected inside text box
+    showUsers();
+};
+
+const getPos = () => {
+    navigator.geolocation.getCurrentPosition(newPos,errorPos,gpsOptions);
+};
 
 //Start communication & geolocation
 
-function start(){
+const start = () => {
+    console.log("APP INICIADA");
+    //Start communication with server 
     socketOn();
-    setInterval(getPos,3000); 
-    //getPos();
-}
+    //Defined interval to get new position
+    eventId=setInterval(getPos,3000);
+};
 
-function stop(){
-    
-    navigator.geolocation.clearWatch(eventId); 
-    //console.log("APP DETENIDA")
-}
+const stop = () => {
+    clearInterval(eventId); 
+    console.log("APP DETENIDA");
+};
 
-window.onload=start();
+window.onload=start;
+window.ondblclick=stop;
+
 
 
