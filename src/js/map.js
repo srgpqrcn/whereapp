@@ -38,7 +38,8 @@ const updateDataBase = (userData) => {
         mapDataBase.mapMarkers.push(userData);
     }
     
-    //console.log(mapDataBase);
+    //QUITAR ESTAS FUNCIONES DE AQUI, DEBERÍAN IR EN OTRA FUNCION.
+    
     drawMarkers();
 };
 
@@ -91,22 +92,26 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 }).addTo(map); 
 
-//Text Box
-const textBox = L.control({ position: "topright" });
-let activeUsers;
-textBox.onAdd = () => {
-    activeUsers = L.DomUtil.create("div","textBox");
-    return activeUsers;
-  };  
-textBox.addTo(map);
+//Create box container with users list
+const boxControl = L.control({ position: "topright" });
+const boxContainer = L.DomUtil.create("div","boxContainer");
+//const boxList = document.createElement("ul");
+const boxList = L.DomUtil.create("ul","boxList");
+const listItem = L.DomUtil.create("li","boxListItem");
+boxControl.onAdd = () => {
+    listItem.appendChild(document.createTextNode(userName));
+    boxList.appendChild(listItem);
+    boxContainer.appendChild(boxList);
+    return boxContainer;
+};  
+boxControl.addTo(map);
 
-const showUsers = () => {
-    const users = [];
-    mapDataBase.mapMarkers.map((user)=>{
-        users.push(user.name);
-    });
-    activeUsers.innerText=users.length.toString();
-}
+/*const updateUserInfo = (newUserName) => {
+    const listItem = document.createElement('li');
+    listItem.appendChild(document.createTextNode(newUserName));
+    boxList.appendChild(listItem);
+};*/
+
 
 //Map functions
 
@@ -153,7 +158,7 @@ const drawMarkers = () => {
     map.fitBounds(mapBounds,{padding:[50,50]});
 
     //Showing users connected inside text box
-    showUsers();
+    //showUsers();
 };
 
 const getPos = () => {

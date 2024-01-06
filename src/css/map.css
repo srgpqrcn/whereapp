@@ -22,10 +22,19 @@ body{
        
     
 }
-.textBox {
+.boxContainer {
     border: 1px solid black;
     background: #fff;
     border-radius: 5px;
     width: 100px;
-    height: 50px;
+    height: 30px;
+
   }
+.boxList {
+    list-style-type: none;
+}
+.boxListItem {
+    text-align: left;
+    font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+    font-size: 16px;
+}
