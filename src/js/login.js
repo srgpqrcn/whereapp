@@ -7,7 +7,7 @@ const userAction = () => {
     const name=inputName.value; 
     if(name.length>0){
         localStorage.setItem("username",name);
-        userInput.setAttribute("action","./views/map.html");
+        userInput.setAttribute("action","./views/app.html");
     }else{
         alert("Please, introduce an user name.")
     }
