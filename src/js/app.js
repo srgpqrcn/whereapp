@@ -9,8 +9,10 @@ const db = {
 ///Map creation
 const mapArea = document.getElementById("map");
 const markerGroup = L.featureGroup();
+let mapfollowMode = false; 
 
-const MAX_ZOOM_AUTO = 13;
+const MAX_ZOOM_AUTO = 19;
+const MIN_ZOOM_AUTO = 1;
 
 let eventId;
 let zoomView=false;
@@ -20,8 +22,8 @@ const map = L.map('map');
 map.setView([0.0,0.0], 2);
 
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    minZoom:1,
+    maxZoom: MAX_ZOOM_AUTO,
+    minZoom:MIN_ZOOM_AUTO,
     attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 }).addTo(map);
 
@@ -47,15 +49,13 @@ const updateMap = (userData,action) => {
     if (oldUser){
         if(action==='update'){
            //Update only if position change
-           //Convert user data position to latLng object
-           //userData.position = L.latLng(userData.position);
-
-           // if(!userData.position.equals(db.markers[i].position)){
+           //Compare new and old position
+           const posEqual = userData.position.every((value, index) => value === db.markers[i].position[index]);
+            if(!posEqual){
                 db.markers[i].position=userData.position;
                 db.markers[i].marker.setLatLng(userData.position);
+            };
             
-            //} 
-
         }else{
             if(action==='remove'){
             //Remove marker from map
@@ -66,7 +66,6 @@ const updateMap = (userData,action) => {
         };
     }else{
         //Adding marker to user data object.
-        //userData.position=L.latLng(userData.position);
         userData.marker=L.marker(userData.position).bindPopup(userData.name); 
         //Adding user object data to database.
         db.markers.push(userData);
@@ -75,23 +74,20 @@ const updateMap = (userData,action) => {
         //Add marker to marker group.
         markerGroup.addLayer(userData.marker);
         
-        //userData.marker.off('click');
         userData.marker.on('click',(ev)=>{   
             followMarker(ev);
             console.log("click on marker");
         });
     };
-
-    
-
 };
 
 //Follow marker position
 const followMarker = (markerEvent) => {
+    mapfollowMode = true;
     map.setView(markerEvent.target.getLatLng(),MAX_ZOOM_AUTO);
     markerEvent.target.on('move',(ev)=>{
-        map.setView(ev.target.getLatLng(),MAX_ZOOM_AUTO);
-        //map.panTo(ev.target.getLatLng());
+        //map.setView(ev.target.getLatLng(),MAX_ZOOM_AUTO);
+        map.panTo(ev.target.getLatLng());
         console.log("siguiendo marker");
     })
 };
@@ -167,6 +163,9 @@ const socketOn = () => {
             name:userName
         };
         updateMap(userData,'remove');
+        if (!mapfollowMode){ 
+            fitMarkers()
+        };
     });
     socket.on('whereapp:serverPos',(userData)=>{
         updateMap(userData,'update');
@@ -183,10 +182,10 @@ const socketEmit = (newPos) => {
 const start = () => {
 
     console.log("APP INICIADA");
-    addMapInfo();
+    //addMapInfo();
     //Start communication with server 
     socketOn();
-    //Call first time % define interval to get new position
+    //Call first time & define interval to get new position
     getPos();
     eventId=setInterval(getPos,INTERVAL_TIME);
     //Add event to remove 'move' events from all markers when user clicks map area
@@ -195,6 +194,7 @@ const start = () => {
             user.marker.off('move');
             });
         //Change map view to see all users
+        mapfollowMode = false;
         fitMarkers();
         });
     };
@@ -208,7 +208,4 @@ const stop = () => {
 //Events
 
 window.onload=start;
-window.ondblclick=stop;
-
-
-
+//window.ondblclick=stop;
