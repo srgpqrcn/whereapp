@@ -149,8 +149,8 @@ const newPos = (pos) => {
 
 /////////SERVER COMMUNICATION
 
-//const serverDomain = "https://whereappapi-production.up.railway.app/"
-const serverDomain = "http://127.0.0.1:3000"
+const serverDomain = "https://whereappapi-production.up.railway.app/"
+//const serverDomain = "http://127.0.0.1:3000"
 const socket = io(serverDomain,{
     auth:{
         user:loginName}
