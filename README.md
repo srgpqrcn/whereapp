@@ -1,2 +1,2 @@
 # whereapp
-Socket.io + Leaflet + Vanilla Js // Geolocation project
+Socket.io + Leaflet + Node Js + Vanilla Js // Geolocation project
