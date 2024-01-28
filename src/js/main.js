@@ -1,13 +1,17 @@
-///User login data
-const loginName = localStorage.getItem('username');
+/////////DB
 
 ///Data base initialization.
 const db = {
     markers: []
 };
 
+
+/////////MAP
+
 ///Map creation
 const mapArea = document.getElementById("map");
+mapArea.style.display = 'none';
+
 const markerGroup = L.featureGroup();
 let mapfollowMode = false; 
 
@@ -19,19 +23,34 @@ let zoomView=false;
  
 const map = L.map('map'); 
 
-map.setView([0.0,0.0], 2);
+///Map functions
 
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+//Initialize map view
+const initMap = () =>{
+    console.log("init map")
+    mapArea.style.display = 'block';
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: MAX_ZOOM_AUTO,
     minZoom:MIN_ZOOM_AUTO,
     attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-}).addTo(map);
+    }).addTo(map);
 
-//Remove all default 'click' & 'dblclick' events
-map.off('click');
-map.off('dblclick');
+    //Remove all default 'click' & 'dblclick' events
+    map.off('click');
+    map.off('dblclick');
 
-///Map functions
+    //Add event to remove 'move' events from all markers when user clicks map area
+    map.on('click',()=>{
+        db.markers.map((user)=>{
+            user.marker.off('move');
+            });
+        //Change map view to see all users
+        mapfollowMode = false;
+        fitMarkers();
+    });
+    
+};
 
 //Update (add or update) database.
 const updateMap = (userData,action) => {
@@ -104,13 +123,6 @@ const fitMarkers = () => {
     
 };
 
-//Map Info
-
-const mapInfo = document.getElementById("mapInfo");
-
-const addMapInfo = () => {
-    mapInfo.innerText=loginName;
-};
 
 ///Geolocation functions
 
@@ -149,12 +161,19 @@ const newPos = (pos) => {
 
 /////////SERVER COMMUNICATION
 
-const serverDomain = "https://whereappapi-production.up.railway.app/"
-//const serverDomain = "http://127.0.0.1:3000"
-const socket = io(serverDomain,{
-    auth:{
-        user:loginName}
-});
+const serverDomain = "https://whereappserver-production.up.railway.app/";
+//const serverDomain = "http://127.0.0.1:3000";
+let socket;
+const initSocket = (userLoginName,userSession) => {
+    const socket = io(serverDomain,{
+        auth:{
+            user:userLoginName,
+            session:userSession
+        }
+    });
+    return socket; 
+};
+
 
 //Socket communication. Receive data from server.
 const socketOn = () => {
@@ -175,38 +194,60 @@ const socketOn = () => {
 
 const socketEmit = (newPos) => {
     socket.emit('whereapp:clientPos',newPos);
-    console.log("Socket Emit // Enviada nueva posicion.");
+    //console.log("Socket Emit // Enviada nueva posicion.");
 };
 
 //Start communication & geolocation
 
-const start = () => {
-
-    console.log("APP INICIADA");
-    //addMapInfo();
-    //Start communication with server 
+const initApp = () => {
+    console.log("initApp");
+    //Start communication with server
+    socket=initSocket(loginName,loginSession);
     socketOn();
     //Call first time & define interval to get new position
     getPos();
     eventId=setInterval(getPos,INTERVAL_TIME);
-    //Add event to remove 'move' events from all markers when user clicks map area
-    map.on('click',()=>{
-        db.markers.map((user)=>{
-            user.marker.off('move');
-            });
-        //Change map view to see all users
-        mapfollowMode = false;
-        fitMarkers();
-        });
-    };
+    initMap();
+};
 
 const stop = () => {
     clearInterval(eventId); 
     console.log("APP DETENIDA");
+}
+
+///USER LOGIN
+
+//User login interaction
+const loginArea = document.getElementById("loginContainer");
+const loginInputName = document.getElementById("inputName");
+const loginInputSession = document.getElementById("inputSession");
+const loginBut = document.getElementById("loginBut");
+let loginName;
+let loginSession;
+
+/// Testing Password
+const adminSessionID = "admin12345#"
+
+const userLogin = () => {
+    let loginSucces = false;
+    if(loginInputName.value.length>0 && loginInputSession.value.length>0){
+        loginName = loginInputName.value;
+        loginSession = loginInputSession.value;
+        if (loginSession===adminSessionID){
+            loginArea.style.display='none';
+            initApp();
+        }else{
+            alert("Enter a Valid Session ID");
+        }
+        
+       
+
+    }else{
+        alert("Please, introduce an user name and session ID.");
+    }
 };
 
 
-//Events
+//User interaction - Events
+loginBut.onclick=userLogin;
 
-window.onload=start;
-//window.ondblclick=stop;
