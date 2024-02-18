@@ -13,16 +13,23 @@
     <link rel="stylesheet" type="text/css" href="./src/css/main.css">
 </head>
 <body>
-    
-    <div id="loginContainer">
-        <div class="userInput">
+    <div class="appContainer">
+        <div id="loginContainer">
+            <div class="userInput">
                 <input type="text" id="inputName" placeholder="User Name">
                 <input type="password" id="inputSession" placeholder="Session ID">
+            </div>
+            <button type="submit" id="loginBut" class="but">Where?</button>
         </div>
-        <button type="submit" id="loginBut" class="but">Where?</button>
+        <div id="mapContainer">
+            <div id="mapInfoArea">
+                <span id="infoName"></span>
+                <span id="infoConnections"></span>
+            </div>
+            <div id="map"></div>
+        </div>
     </div>
-    <div id="map"></div>
-    
+
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" 
     integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" 
     crossorigin="anonymous"></script>
